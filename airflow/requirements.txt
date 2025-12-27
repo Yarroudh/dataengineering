@@ -2,3 +2,5 @@
 
 pyyaml
 boto3
+duckdb
+requests
