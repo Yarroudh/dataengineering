@@ -105,9 +105,7 @@ More details: [https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page](htt
 
 ### High-Level Flow
 
-```text
-Airflow → Download → Local → Spark Ingest → MinIO Landing → Spark Transform → MinIO Prepared → DuckDB → Jupyter
-```
+![Architecture](assets/dag.png)
 
 ---
 
@@ -213,7 +211,7 @@ The DAG is **manual only** (`schedule=None`).
 
 In the Airflow UI:
 
-1. Open the `taxi_spark_pipeline` DAG.
+1. Open the `nyc_taxi_pipeline` DAG.
 2. Click **Trigger DAG w/ config**.
 3. Provide the run configuration as JSON:
 
@@ -225,6 +223,8 @@ In the Airflow UI:
 ```
 
 If `year`/`month` are omitted, the DAG falls back to its default params (`year=2024`, `month=1`).
+
+![Trigger DAG](assets/airflow.png)
 
 ---
 
@@ -306,7 +306,7 @@ This project includes two Jupyter notebooks that support exploratory analysis of
 
 * Analyzes curated data after Spark transformation and DuckDB load.
 * Connects to `warehouse/taxi.duckdb` and queries `taxi.taxi.trips_prepared`.
-* Includes SQL-based aggregations and pandas-based visualization.
+* Includes SQL-based aggregations.
 
 ---
 
@@ -334,6 +334,8 @@ AIRFLOW_FERNET_KEY=...   # must be generated locally (see below)
 
 TZ=UTC
 ```
+
+> The Fernet key is critical for Airflow to securely store connections and variables. Please follow the next section to generate it and set it in your `.env`.
 
 ---
 
@@ -410,7 +412,7 @@ docker compose up -d
 
 2. Log in using the admin credentials from `.env`.
 
-3. Open the `taxi_spark_pipeline` DAG.
+3. Open the `nyc_taxi_pipeline` DAG.
 
 4. Click **Trigger DAG w/ config**.
 
