@@ -339,7 +339,7 @@ TZ=UTC
 
 ---
 
-## 12. Generating `AIRFLOW_FERNET_KEY`
+## 12. Generating AIRFLOW_FERNET_KEY
 
 Airflow uses a Fernet key to encrypt sensitive values (e.g., connections, variables). You must generate a key and set `AIRFLOW_FERNET_KEY` in your `.env`.
 
