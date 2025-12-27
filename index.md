@@ -1,6 +1,6 @@
 # Data Engineering
 
-This project implements a fully containerized data engineering workflow for downloading, ingesting, transforming, validating, and preparing NYC Yellow Taxi Trip Data. It uses **Apache Spark** for computation, **Apache Airflow** for orchestration, **MinIO** as S3-compatible object storage, and **DuckDB** as an analytics warehouse. The entire environment is reproducible using Docker Compose.
+This project implements a fully containerized data engineering workflow for downloading, ingesting, transforming, validating, and preparing NYC Yellow Taxi Trip Data. It uses **Apache Spark** for computation, **Apache Airflow** for orchestration, **MinIO** as **Amazon S3**-compatible object storage, and **DuckDB** as an analytics warehouse. The entire environment is reproducible using Docker Compose and set to run locally.
 
 ---
 
