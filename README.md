@@ -40,7 +40,7 @@ The pipeline is orchestrated by Airflow and executed using Spark via containeriz
 │   ├── ingest_landing.py
 │   └── transform_prepared.py
 ├── warehouse
-    └── taxi.duckdb
+│   └── taxi.duckdb
 ├── README.md
 ├── docker-compose.yml
 ├── LICENSE
