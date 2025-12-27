@@ -1,4 +1,4 @@
-# Taxi Trips Data Engineering Pipeline
+# Data Engineering Project
 
 This project implements a fully containerized data engineering workflow for ingesting, processing, validating, and preparing NYC Yellow Taxi trip data. It uses Apache Spark for computation, Apache Airflow for orchestration, MinIO as S3-compatible object storage, DuckDB for analytics. The environment is fully reproducible through Docker Compose.
 
