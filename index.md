@@ -212,7 +212,7 @@ The DAG is **manual only** (`schedule=None`).
 In the Airflow UI:
 
 1. Open the `nyc_taxi_pipeline` DAG.
-2. Click **Trigger DAG w/ config**.
+2. Click **Trigger DAG**.
 3. Provide the run configuration as JSON:
 
 ```json
@@ -414,7 +414,7 @@ docker compose up -d
 
 3. Open the `nyc_taxi_pipeline` DAG.
 
-4. Click **Trigger DAG w/ config**.
+4. Click **Trigger DAG**.
 
 5. Provide year/month, for example:
 
