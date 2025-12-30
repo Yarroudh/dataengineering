@@ -19,7 +19,7 @@ The workflow simulates a modern data engineering architecture with dedicated lay
 2. **Landing Layer (MinIO/S3)** – Central storage for raw but structured data.
 3. **Prepared Layer (MinIO/S3)** – Cleaned, filtered and transformed datasets generated via Spark Pipeline.
 4. **Warehouse Layer (DuckDB)** – Analytical storage loaded from the Prepared layer.
-5. **Analytics Layer (JupyterLab)** – Data exploration and downstream modeling using notebooks.
+5. **EDA Layer (JupyterLab)** – Data exploration and downstream modeling using notebooks.
 
 ---
 
@@ -304,7 +304,7 @@ Responsibilities:
 
 ---
 
-## 9. Analytics Schema (what lands in DuckDB)
+## 9. Analytics Schema
 
 The Prepared layer (and thus `taxi.taxi.trips_prepared`) contains:
 
@@ -326,7 +326,7 @@ The Prepared layer (and thus `taxi.taxi.trips_prepared`) contains:
 
 ## 10. Notebooks
 
-This project includes two Jupyter notebooks that support exploratory analysis of both the **raw TLC data** and the **prepared analytics-ready data**.
+This project includes two Jupyter notebooks that support exploratory analysis of both the **raw TLC data** and the **prepared data**.
 
 ### 10.1 Raw Data Exploration
 
@@ -482,7 +482,7 @@ After a successful run, DuckDB (`warehouse/taxi.duckdb`) contains `taxi.taxi.tri
 2. Run:
 
    * `notebooks/01_raw_data_exploration.ipynb` (raw profiling)
-   * `notebooks/02_prepared_data_exploration.ipynb` (analytics-ready data)
+   * `notebooks/02_prepared_data_exploration.ipynb` (prepared data)
 
 ---
 
