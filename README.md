@@ -2,11 +2,7 @@
 
 This project implements a fully containerized data engineering workflow for downloading, ingesting, transforming, validating, and preparing NYC Yellow Taxi Trip Data. It uses **Apache Spark** for computation, **Apache Airflow** for orchestration, **MinIO** as **Amazon S3**-compatible object storage, and **DuckDB** as an analytics warehouse. The entire environment is reproducible using Docker Compose and set to run locally.
 
----
-
-## 1. Project Overview
-
-This workflow simulates a modern data engineering architecture with dedicated layers:
+The workflow simulates a modern data engineering architecture with dedicated layers:
 
 1. **Local Layer** – Raw TLC data downloaded directly to the local filesystem.
 2. **Landing Layer (MinIO/S3)** – Central storage for raw but structured data.
@@ -14,7 +10,17 @@ This workflow simulates a modern data engineering architecture with dedicated la
 4. **Warehouse Layer (DuckDB)** – Analytical storage loaded from the Prepared layer.
 5. **Analytics Layer (JupyterLab)** – Notebook-driven exploration and downstream modeling.
 
-All pipeline steps are orchestrated using Airflow and executed within fully isolated containers.
+---
+
+## 1. Project Overview
+
+The workflow simulates a modern data engineering architecture with dedicated layers:
+
+1. **Local Layer** – Raw TLC data downloaded directly to the local filesystem.
+2. **Landing Layer (MinIO/S3)** – Central storage for raw but structured data.
+3. **Prepared Layer (MinIO/S3)** – Cleaned, transformed, analytics-ready datasets generated via Spark.
+4. **Warehouse Layer (DuckDB)** – Analytical storage loaded from the Prepared layer.
+5. **Analytics Layer (JupyterLab)** – Notebook-driven exploration and downstream modeling.
 
 ---
 
@@ -52,45 +58,66 @@ All pipeline steps are orchestrated using Airflow and executed within fully isol
 
 ## 3. Dataset
 
-This pipeline processes **NYC Yellow Taxi Trip Records**.
+### Source and availability
 
-The primary usage is **Airflow-driven download**, but you can still download data manually if needed.
+- **Trip data:** NYC TLC Yellow Taxi Trip Records (monthly Parquet files).
+- **Zone reference data:** NYC TLC Taxi Zone Lookup Table (CSV).
 
-### Manual Download (Optional)
+This project is configured and tested for **years up to and including 2024** (e.g., `2024-01`).
+The TLC continues to publish newer months/years, but **schemas may change over time** (for example, additional columns may appear), so treat 2025+ as **“use at your own risk”** unless you update your transformations accordingly.
+
+### Manual download [optional]
 
 ```bash
 mkdir -p data
-curl -L "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-01.parquet" \
-  -o data/yellow_tripdata_2024-01.parquet
+
+# Example month (2024-01)
+curl -L "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-01.parquet"   -o data/yellow_tripdata_2024-01.parquet
+
+# Taxi zones
+curl -L "https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv"   -o data/taxi_zone_lookup.csv
 ```
 
-Key fields include:
+### Raw trip record columns
 
-| Field Name            | Description                                                            |
-| --------------------- | ---------------------------------------------------------------------- |
-| VendorID              | Code for the TPEP provider (Creative Mobile Technologies or VeriFone). |
-| tpep_pickup_datetime  | When the trip meter was started.                                       |
-| tpep_dropoff_datetime | When the trip meter was stopped.                                       |
-| Passenger_count       | Number of passengers (driver-entered).                                 |
-| Trip_distance         | Distance in miles measured by the taximeter.                           |
-| RateCodeID            | Final rate code (Standard, JFK, Newark, etc.).                         |
-| Store_and_fwd_flag    | Whether the record was stored and forwarded later (“Y” or “N”).        |
-| Payment_type          | Code for payment method (Credit card, Cash, Dispute, etc.).            |
-| Fare_amount           | Meter-calculated fare.                                                 |
-| Extra                 | Additional surcharges (rush-hour, etc.).                               |
-| MTA_tax               | $0.50 MTA surcharge.                                                   |
-| Improvement_surcharge | $0.30 surcharge at trip start.                                         |
-| Tip_amount            | Tip (credit card only).                                                |
-| Tolls_amount          | Total tolls.                                                           |
-| Total_amount          | Total charged to the passenger (excluding cash tips).                  |
+| Column | Type (pandas) | Description |
+| --- | --- | --- |
+| VendorID | int | TPEP provider code (vendor). |
+| tpep_pickup_datetime | datetime | Trip meter start timestamp. |
+| tpep_dropoff_datetime | datetime | Trip meter stop timestamp. |
+| passenger_count | float/int | Passenger count (driver-entered). |
+| trip_distance | float | Trip distance in miles (taximeter). |
+| RatecodeID | float/int | Final rate code for the trip. |
+| store_and_fwd_flag | string | “Store and forward” indicator. |
+| PULocationID | int | Pickup TLC Taxi Zone ID. |
+| DOLocationID | int | Drop-off TLC Taxi Zone ID. |
+| payment_type | int | Payment type code. |
+| fare_amount | float | Fare amount. |
+| extra | float | Extras/surcharges (varies). |
+| mta_tax | float | MTA tax. |
+| tip_amount | float | Tip amount. |
+| tolls_amount | float | Tolls amount. |
+| improvement_surcharge | float | Improvement surcharge. |
+| total_amount | float | Total amount charged. |
+| congestion_surcharge | float | Congestion surcharge. |
+| Airport_fee | float | Airport fee (may be null / not present in older years). |
 
-More details: [https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page)
+> Note: the TLC schema can vary slightly across years.
+
+### Taxi zone lookup columns
+
+| Column | Type | Description |
+| --- | --- | --- |
+| LocationID | int | Taxi Zone ID used by TLC trip files. |
+| Borough | string | Borough name. |
+| Zone | string | Zone name. |
+| service_zone | string | Service zone label (e.g., “Yellow Zone”, “Boro Zone”). |
 
 ---
 
 ## 4. System Architecture
 
-### Component Overview
+### Component overview
 
 ![Technologies](assets/stack.png)
 
@@ -103,7 +130,8 @@ More details: [https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page](htt
 | JupyterLab     | Exploration and EDA environment.                                        |
 | Docker Compose | Orchestrates and isolates the entire system.                            |
 
-### High-Level Flow
+
+### High-level flow
 
 ![Architecture](assets/dag.png)
 
@@ -111,14 +139,25 @@ More details: [https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page](htt
 
 ## 5. Data Layouts in MinIO
 
-### Landing Zone
+### Landing zone
+
+- Monthly trips:
 
 ```text
 s3://<bucket>/landing/taxi/year=YYYY/month=MM/
     part-*.parquet
 ```
 
-### Prepared Zone
+- Taxi zones:
+
+```text
+s3://<bucket>/landing/reference/taxi_zones/
+    part-*.parquet
+```
+
+### Prepared zone
+
+Prepared trips (enriched with zone attributes; partitioned by day):
 
 ```text
 s3://<bucket>/prepared/taxi/year=YYYY/month=MM/
@@ -158,9 +197,11 @@ Both paths are dynamically parameterized with **year** and **month**, which are 
 
 ## 7. Airflow Pipeline
 
-### DAG: `taxi_spark_pipeline`
+The DAG is defined in:
 
-Location: `airflow/dags/taxi_pipeline_dag.py`
+```text
+airflow/dags/taxi_pipeline_dag.py
+```
 
 ### Tasks
 
@@ -169,13 +210,19 @@ Location: `airflow/dags/taxi_pipeline_dag.py`
    * Downloads the TLC Parquet file for a given **year** / **month** into `data/`.
    * URL pattern:
      `https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_YYYY-MM.parquet`
+   * Downloads the Taxi Zone Lookup CSV into `data/` (only once, not partitioned):
+     `https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv`
 
 2. **ingest_to_landing**
 
    * Runs `ingest_landing.py` on Spark with `--year` and `--month`.
    * Reads local Parquet from `data/`.
    * Writes raw structured data into MinIO Landing:
-
+      - Taxi Zones (only once, not partitioned):
+     ```text
+     s3a://<bucket>/landing/reference/taxi_zones/
+     ```
+      - Monthly Trips:
      ```text
      s3a://<bucket>/landing/taxi/year=YYYY/month=MM/
      ```
@@ -185,7 +232,10 @@ Location: `airflow/dags/taxi_pipeline_dag.py`
    * Runs `transform_prepared.py` on Spark with `--year` and `--month`.
    * Reads Landing data for the selected month.
    * Cleans and enriches the data.
-   * Writes analytics-ready data into Prepared:
+   * Joins the Taxi Zone Lookup Table twice:
+     - `PULocationID` → pickup zone attributes (`PU_*`)
+     - `DOLocationID` → drop-off zone attributes (`DO_*`)
+   * Writes the output to the Prepared layer (partitioned by `pickup_date`):
 
      ```text
      s3a://<bucket>/prepared/taxi/year=YYYY/month=MM/
@@ -205,7 +255,7 @@ Location: `airflow/dags/taxi_pipeline_dag.py`
 
    * The `taxi.taxi.trips_prepared` table is **overwritten** for each pipeline run. After each run, it contains only the data for the triggered year/month.
 
-### Triggering the DAG and Passing Parameters
+### Triggering the DAG
 
 The DAG is **manual only** (`schedule=None`).
 
@@ -234,53 +284,46 @@ If `year`/`month` are omitted, the DAG falls back to its default params (`year=2
 
 Responsibilities:
 
-* Accepts CLI parameters: `--year` and `--month`.
-* Builds input/output paths based on these values:
-
-  * Local file: `/opt/de_project/data/yellow_tripdata_YYYY-MM.parquet`
-  * Landing path: `s3a://<bucket>/landing/taxi/year=YYYY/month=MM/`
-* Reads the Parquet file and writes to MinIO using the S3A connector.
+- Ingest **monthly trips** (local Parquet) → `landing/taxi/year=YYYY/month=MM/`
+- Ingest **taxi zones** (local CSV) → `landing/reference/taxi_zones/`
 
 ### `spark_jobs/transform_prepared.py`
 
 Responsibilities:
 
-* Accepts `--year` and `--month`.
-* Builds Landing and Prepared paths for the given month.
-* Reads Landing data, then:
-
-  * Filters invalid rows (e.g., negative distances, invalid timestamps).
-  * Derives:
-
-    * `pickup_date`, `pickup_hour`
-    * `dropoff_date`
-    * `trip_duration_min`
-    * `avg_mph`
-  * Casts core fields to appropriate types.
-* Writes transformed data into Prepared, partitioned by `pickup_date`.
+- Read monthly trips from Landing.
+- Apply basic filters (e.g., negative distances, invalid timestamps).
+- Derive:
+  - `pickup_date`, `pickup_hour`
+  - `dropoff_date`
+  - `trip_duration_min`
+  - `avg_mph`
+- Join taxi zones twice to add:
+  - `PU_Borough`, `PU_Zone`, `PU_service_zone`
+  - `DO_Borough`, `DO_Zone`, `DO_service_zone`
+- Write Prepared data partitioned by `pickup_date`.
 
 ---
 
-## 9. DuckDB Analytics Layer
+## 9. Analytics Schema (what lands in DuckDB)
 
-### Warehouse
+The Prepared layer (and thus `taxi.taxi.trips_prepared`) contains:
 
-```text
-warehouse/taxi.duckdb
-```
+- All raw trip fields (see Dataset section), in addition to:
 
-The pipeline targets the table:
-
-```sql
-taxi.taxi.trips_prepared
-```
-
-Each Airflow run:
-
-* Reads the Prepared Parquet for the configured year/month.
-* Overwrites `taxi.taxi.trips_prepared` with the new data.
-
----
+| Column | Description |
+| --- | --- |
+| pickup_date | Date derived from `tpep_pickup_datetime`. |
+| pickup_hour | Hour-of-day derived from `tpep_pickup_datetime`. |
+| dropoff_date | Date derived from `tpep_dropoff_datetime`. |
+| trip_duration_min | Trip duration in minutes. |
+| avg_mph | Average trip speed in mph (distance / duration). |
+| PU_Borough | Borough for pickup zone. |
+| PU_Zone | Zone name for pickup zone. |
+| PU_service_zone | Service zone label for pickup zone. |
+| DO_Borough | Borough for drop-off zone. |
+| DO_Zone | Zone name for drop-off zone. |
+| DO_service_zone | Service zone label for drop-off zone. |
 
 ## 10. Notebooks
 

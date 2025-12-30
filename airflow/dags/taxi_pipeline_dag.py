@@ -40,30 +40,39 @@ def _get_year_month_from_context(context):
 def download_taxi_data(**context):
     """
     Download raw TLC Parquet for the requested (year, month)
-    into the shared local data folder.
+    plus Taxi Zone lookup table (dimension) into the shared local data folder.
     """
-    # Local import to avoid DAG parse-time failure if package missing
     import requests
 
     year, month = _get_year_month_from_context(context)
 
-    filename = f"yellow_tripdata_{year}-{month:02d}.parquet"
-    url = f"https://d37ci6vzurychx.cloudfront.net/trip-data/{filename}"
+    # Trip file (monthly fact)
+    trip_filename = f"yellow_tripdata_{year}-{month:02d}.parquet"
+    trip_url = f"https://d37ci6vzurychx.cloudfront.net/trip-data/{trip_filename}"
+
+    # Zone lookup (dimension; not year/month specific)
+    zones_filename = "taxi_zone_lookup.csv"
+    zones_url = "https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv"
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    target_path = DATA_DIR / filename
 
-    print(f"Downloading {url} -> {target_path}")
-    resp = requests.get(url, stream=True)
-    resp.raise_for_status()
+    def _download(url: str, target_path: Path):
+        print(f"Downloading {url} -> {target_path}")
+        resp = requests.get(
+            url,
+            stream=True,
+            timeout=60,
+            headers={"User-Agent": "Mozilla/5.0"},
+        )
+        resp.raise_for_status()
+        with open(target_path, "wb") as f:
+            for chunk in resp.iter_content(chunk_size=1024 * 1024):
+                if chunk:
+                    f.write(chunk)
+        print(f"Download complete: {target_path}")
 
-    with open(target_path, "wb") as f:
-        for chunk in resp.iter_content(chunk_size=1024 * 1024):
-            if chunk:
-                f.write(chunk)
-
-    print(f"Download complete: {target_path}")
-
+    _download(trip_url, DATA_DIR / trip_filename)
+    _download(zones_url, DATA_DIR / zones_filename)
 
 def load_to_duckdb(**context):
     """
