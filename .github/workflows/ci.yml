@@ -47,6 +47,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install cryptography (for Fernet key)
+        run: python -m pip install --upgrade pip cryptography
+
+      - name: Create CI .env file
+        shell: bash
+        run: |
+          FERNET_KEY="$(python - <<'PY'
+          from cryptography.fernet import Fernet
+          print(Fernet.generate_key().decode())
+          PY
+          )"
+                    cat > .env <<EOF
+          TZ=UTC
+          AWS_ACCESS_KEY_ID=dummy
+          AWS_SECRET_ACCESS_KEY=dummy
+          AWS_REGION=us-east-1
+          S3_ENDPOINT_URL=http://minio:9000
+          S3_BUCKET_NAME=de-bucket
+          MINIO_ROOT_USER=minioadmin
+          MINIO_ROOT_PASSWORD=minioadmin
+          AIRFLOW_EXECUTOR=LocalExecutor
+          AIRFLOW_FERNET_KEY=$FERNET_KEY
+          AIRFLOW_ADMIN_USER=admin
+          AIRFLOW_ADMIN_PASSWORD=admin
+          AIRFLOW_ADMIN_EMAIL=admin@example.com
+          EOF
+
       - name: Validate docker compose file
         run: docker compose config -q
 
