@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   ruff:
-    name: ruff [lint & format check]
+    name: ruff [lint check]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
