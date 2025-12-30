@@ -1,11 +1,11 @@
 import os
-from pathlib import Path
 from datetime import datetime, timedelta
+from pathlib import Path
 
-from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 
+from airflow import DAG
 
 # Paths / constants
 PROJECT_ROOT = "/opt/de_project"
@@ -74,6 +74,7 @@ def download_taxi_data(**context):
     _download(trip_url, DATA_DIR / trip_filename)
     _download(zones_url, DATA_DIR / zones_filename)
 
+
 def load_to_duckdb(**context):
     """
     Load prepared data for a given (year, month) from MinIO into DuckDB,
@@ -93,9 +94,7 @@ def load_to_duckdb(**context):
     year, month = _get_year_month_from_context(context)
     ym_str = f"{year}-{month:02d}"
 
-    prepared_glob = (
-        f"s3://{S3_BUCKET_NAME}/prepared/taxi/year={year}/month={month:02d}/*/*.parquet"
-    )
+    prepared_glob = f"s3://{S3_BUCKET_NAME}/prepared/taxi/year={year}/month={month:02d}/*/*.parquet"
 
     WAREHOUSE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -108,9 +107,7 @@ def load_to_duckdb(**context):
     con.execute("INSTALL httpfs;")
     con.execute("LOAD httpfs;")
 
-    endpoint_no_scheme = (
-        S3_ENDPOINT_URL.replace("http://", "").replace("https://", "")
-    )
+    endpoint_no_scheme = S3_ENDPOINT_URL.replace("http://", "").replace("https://", "")
 
     con.execute("SET s3_endpoint = ?;", [endpoint_no_scheme])
     con.execute("SET s3_url_style = 'path';")
@@ -130,9 +127,7 @@ def load_to_duckdb(**context):
         [prepared_glob],
     )
 
-    row_count = con.execute(
-        "SELECT COUNT(*) FROM taxi.taxi.trips_prepared;"
-    ).fetchone()[0]
+    row_count = con.execute("SELECT COUNT(*) FROM taxi.taxi.trips_prepared;").fetchone()[0]
     print(f"Rows in taxi.taxi.trips_prepared after load for {ym_str}: {row_count}")
 
     con.close()
@@ -151,15 +146,14 @@ with DAG(
     description="Taxi pipeline: download -> local -> landing -> prepared -> duckdb",
     default_args=default_args,
     start_date=datetime(2024, 1, 1),
-    schedule=None,          # run manually
+    schedule=None,  # run manually
     catchup=False,
     tags=["taxi", "spark", "minio", "duckdb"],
-    params={                # defaults if no config is passed when triggering
+    params={  # defaults if no config is passed when triggering
         "year": 2024,
         "month": 1,
     },
 ):
-
     # 1) Download raw Parquet from TLC for given year/month
     download_taxi_data_task = PythonOperator(
         task_id="download_taxi_data",
@@ -191,7 +185,7 @@ with DAG(
         ),
     )
 
-    # 4) Load prepared -> DuckDB 
+    # 4) Load prepared -> DuckDB
     ingest_duckdb_task = PythonOperator(
         task_id="load_to_duckdb",
         python_callable=load_to_duckdb,

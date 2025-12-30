@@ -1,6 +1,9 @@
-import os
 import argparse
-from pyspark.sql import SparkSession, functions as F, types as T
+import os
+
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+from pyspark.sql import types as T
 
 BUCKET = os.environ["S3_BUCKET_NAME"]
 ENDPOINT = os.environ["S3_ENDPOINT_URL"]
@@ -29,8 +32,7 @@ def build_paths(year: int, month: int):
 
 def get_spark():
     return (
-        SparkSession.builder
-        .appName("TaxiIngestToLanding")
+        SparkSession.builder.appName("TaxiIngestToLanding")
         .config("spark.hadoop.fs.s3a.endpoint", ENDPOINT)
         .config("spark.hadoop.fs.s3a.access.key", os.environ["AWS_ACCESS_KEY_ID"])
         .config("spark.hadoop.fs.s3a.secret.key", os.environ["AWS_SECRET_ACCESS_KEY"])
@@ -52,16 +54,11 @@ def ingest_zones(spark: SparkSession):
         )
 
     print(f"Reading zones CSV from: {LOCAL_ZONES_FILE}")
-    zones = (
-        spark.read
-        .option("header", True)
-        .csv(LOCAL_ZONES_FILE)
-    )
+    zones = spark.read.option("header", True).csv(LOCAL_ZONES_FILE)
 
     # Normalize schema
     zones = (
-        zones
-        .withColumn("LocationID", F.col("LocationID").cast(T.IntegerType()))
+        zones.withColumn("LocationID", F.col("LocationID").cast(T.IntegerType()))
         .withColumn("Borough", F.col("Borough").cast(T.StringType()))
         .withColumn("Zone", F.col("Zone").cast(T.StringType()))
         .withColumn("service_zone", F.col("service_zone").cast(T.StringType()))
@@ -70,12 +67,7 @@ def ingest_zones(spark: SparkSession):
     print(f"Zones row count: {zones.count()}")
     print(f"Writing zones to MinIO path: {ZONES_LANDING_PATH}")
 
-    (
-        zones.coalesce(1)
-        .write
-        .mode("overwrite")
-        .parquet(ZONES_LANDING_PATH)
-    )
+    (zones.coalesce(1).write.mode("overwrite").parquet(ZONES_LANDING_PATH))
 
     print("Zones ingest done.")
 
@@ -101,13 +93,8 @@ def main():
     print(f"Trip row count: {df.count()}")
 
     print(f"Writing trips to MinIO path: {landing_path}")
-    (
-        df.write
-        .mode("overwrite")
-        .parquet(landing_path)
-    )
+    (df.write.mode("overwrite").parquet(landing_path))
 
-    # 2) Zones (dimension)
     ingest_zones(spark)
 
     print("Done.")

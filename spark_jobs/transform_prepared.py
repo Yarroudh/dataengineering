@@ -1,6 +1,9 @@
-import os
 import argparse
-from pyspark.sql import SparkSession, functions as F, types as T
+import os
+
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+from pyspark.sql import types as T
 
 BUCKET = os.environ["S3_BUCKET_NAME"]
 ENDPOINT = os.environ["S3_ENDPOINT_URL"]
@@ -25,8 +28,7 @@ def build_paths(year: int, month: int):
 
 def get_spark():
     return (
-        SparkSession.builder
-        .appName("TaxiTransformToPrepared")
+        SparkSession.builder.appName("TaxiTransformToPrepared")
         .config("spark.hadoop.fs.s3a.endpoint", ENDPOINT)
         .config("spark.hadoop.fs.s3a.access.key", os.environ["AWS_ACCESS_KEY_ID"])
         .config("spark.hadoop.fs.s3a.secret.key", os.environ["AWS_SECRET_ACCESS_KEY"])
@@ -58,10 +60,7 @@ def base_transform(df):
 
     df = df.withColumn(
         "trip_duration_min",
-        (
-            F.unix_timestamp("tpep_dropoff_datetime")
-            - F.unix_timestamp("tpep_pickup_datetime")
-        )
+        (F.unix_timestamp("tpep_dropoff_datetime") - F.unix_timestamp("tpep_pickup_datetime"))
         / 60.0,
     )
     df = df.where(F.col("trip_duration_min") > 0)
@@ -88,10 +87,8 @@ def add_zone_attributes(trips_df, zones_df):
     """
     Add pickup/dropoff zone attributes via two joins (PU and DO).
     """
-    zones = (
-        zones_df
-        .select("LocationID", "Borough", "Zone", "service_zone")
-        .withColumn("LocationID", F.col("LocationID").cast(T.IntegerType()))
+    zones = zones_df.select("LocationID", "Borough", "Zone", "service_zone").withColumn(
+        "LocationID", F.col("LocationID").cast(T.IntegerType())
     )
 
     # Build two aliased versions to avoid column collisions
@@ -139,10 +136,8 @@ def main():
 
     print(f"Writing prepared data to: {prepared_path}")
     (
-        df_prep
-        .repartition("pickup_date")
-        .write
-        .mode("overwrite")
+        df_prep.repartition("pickup_date")
+        .write.mode("overwrite")
         .partitionBy("pickup_date")
         .parquet(prepared_path)
     )
