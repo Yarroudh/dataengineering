@@ -10,9 +10,9 @@ The workflow simulates a modern data engineering architecture with dedicated lay
 
 1. **Local Layer** – Raw TLC data downloaded directly to the local filesystem.
 2. **Landing Layer (MinIO/S3)** – Central storage for raw but structured data.
-3. **Prepared Layer (MinIO/S3)** – Cleaned, transformed, analytics-ready datasets generated via Spark.
+3. **Prepared Layer (MinIO/S3)** – Cleaned, filtered and transformed datasets generated via Spark Pipeline.
 4. **Warehouse Layer (DuckDB)** – Analytical storage loaded from the Prepared layer.
-5. **Analytics Layer (JupyterLab)** – Notebook-driven exploration and downstream modeling.
+5. **Analytics Layer (JupyterLab)** – Data exploration and downstream modeling using notebooks.
 
 ---
 
