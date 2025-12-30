@@ -10,7 +10,10 @@ RUN pip install --no-cache-dir \
     pyarrow \
     fsspec \
     s3fs \
-    pyyaml
+    pyyaml \
+    matplotlib \
+    seaborn \
+    plotly
 
 WORKDIR /opt/de_project
 

@@ -72,7 +72,7 @@ curl -L "https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv"   -o d
 
 ### Raw trip record columns
 
-| Column | Type (pandas) | Description |
+| Column | Type | Description |
 | --- | --- | --- |
 | VendorID | int | TPEP provider code (vendor). |
 | tpep_pickup_datetime | datetime | Trip meter start timestamp. |
