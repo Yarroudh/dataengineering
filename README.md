@@ -1,11 +1,11 @@
 # Data Engineering
 
 [![CI](https://github.com/Yarroudh/dataengineering/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Yarroudh/dataengineering/actions/workflows/ci.yml)
-![License](https://img.shields.io/github/license/Yarroudh/dataengineering)
 ![Last commit](https://img.shields.io/github/last-commit/Yarroudh/dataengineering)
 ![Python](https://img.shields.io/badge/python-3.11-blue)
 ![Ruff](https://img.shields.io/badge/lint-ruff-261230)
 ![Trivy](https://img.shields.io/badge/security-trivy-1904DA)
+![License](https://img.shields.io/github/license/Yarroudh/dataengineering)
 
 This project implements a fully containerized data engineering workflow for downloading, ingesting, transforming, validating, and preparing NYC Yellow Taxi Trip Data. It uses **Apache Spark** for computation, **Apache Airflow** for orchestration, **MinIO** as **Amazon S3**-compatible object storage, and **DuckDB** as an analytics warehouse. The entire environment is reproducible using Docker Compose and set to run locally.
 
@@ -326,29 +326,25 @@ The Prepared layer (and thus `taxi.taxi.trips_prepared`) contains:
 
 ## 10. Notebooks
 
-This project includes two Jupyter notebooks that support exploratory analysis of both the **raw TLC data** and the **prepared data**.
+This project includes two Jupyter notebooks for exploratory analysis of the **raw TLC trip files** and the **prepared dataset**.
 
 ### 10.1 Raw Data Exploration
 
 **File:** `notebooks/01_raw_data_exploration.ipynb`
 
-* Inspects and validates the raw TLC Parquet file in `data/`.
-* Uses **pandas**, including pandas built-in plotting (`DataFrame.plot` / `Series.plot`).
-* Typical checks:
-
-  * schema and dtypes
-  * missing values
-  * negative or unexpected values
-  * outliers and distribution profiling
-  * temporal patterns (e.g., by day/hour)
+* Loads a selected month of raw Parquet data (parameterized `YEAR` / `MONTH`) and the taxi zone lookup CSV.
+* Uses **pandas** plus **Plotly** for interactive charts.
+* Performs basic data profiling and quality checks (schema, missing values, duplicates, invalid/negative values, distributions).
+* Adds derived fields (e.g., trip duration) and reviews temporal and zone-based patterns (top pickup/dropoff zones).
 
 ### 10.2 Prepared Data Exploration
 
 **File:** `notebooks/02_prepared_data_exploration.ipynb`
 
-* Analyzes curated data after Spark transformation and DuckDB load.
-* Connects to `warehouse/taxi.duckdb` and queries `taxi.taxi.trips_prepared`.
-* Includes SQL-based aggregations.
+* Connects to DuckDB (`warehouse/taxi.duckdb`) and queries `taxi.taxi.trips_prepared`.
+* Configures DuckDB `httpfs` for S3/MinIO access (credentials via environment variables).
+* Uses SQL aggregations to validate coverage and quality, and to analyze temporal patterns and key distributions.
+* Produces summary tables and interactive visualizations (Plotly) for metrics and top zones / OD pairs.
 
 ---
 
@@ -514,9 +510,9 @@ docker compose logs <service>
 
 ## 15. Future Enhancements
 
+- [x] Add CI workflow.
 - [ ] Add data quality checks (e.g., Great Expectations / Deequ).
 - [ ] Implement incremental and multi-month ingestion.
-- [x] Add CI workflows.
 - [ ] Introduce dataset versioning and data catalog integration.
 
 ---
